@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        canvas{
+            position: absolute;
+            top: 0;
+            left: 180px;
+        }
+        input[type='number']{
+            width: 60px;
+            height: 30px;
+        }
+        input[type='file']{
+            width: 120px;
+            height: 40px;
+            opacity: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #canvasBox{
+            position: relative;
+        }
+        canvas{
+            background: lemonchiffon;
+        }
+        .erasers,.eraserMsg,.importMsg{
+            position: absolute;
+            top: 0;
+            left: 180px;
+            width: 1600px;
+            height: 800px;
+            /*background: rgba(45,45,45,0.1);*/
+            display: none;
+            z-index:2;
+            overflow: hidden;
+        }
+        /*导出表单样式*/
+        .importMsg{background: rgba(128,128,128,0.3)}
+        .importMsg form{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            width: 600px;
+            height: 320px;
+            padding-top: 80px;
+            border: 1px solid #9a9a9a;
+            border-radius: 5px;
+            box-shadow: 1px 1px 10px rgba(128,128,128,0.5);
+            background: white;
+        }
+        .importMsg form label{
+            padding:15px;
+            display: block;
+            padding-left: 120px;
+            /*margin: 0 0 20px 0;*/
+        }
+        .importMsg form label span i{
+            font-style: normal;
+            color: #f00;
+            vertical-align: middle;
+            padding-right: 5px;
+        }
+        .importMsg form label select,.importMsg form label input{
+            min-width: 200px;
+            height: 30px;
+        }
+        .importMsg form .buttonBox{
+            position: absolute;
+            left: 0;
+            bottom: 20px;
+            width: 100%;
+            height: 40px;
+            text-align: center;
+        }
+        .importMsg form .buttonBox button{
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 0;
+            border-radius: 5px;
+        }
+        .importMsg form .buttonBox button#submit{
+            background: #409eff;
+            margin-right: 50px;
+            color: #fff;
+        }
+        /*橡皮样式*/
+        .eraserCon{
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: black;
+            z-index: 2;
+        }
+        .oneLevel{
+            width: 1830px;
+            margin: 20px 50px 0;
+            display: flex;
+            justify-content: flex-start;
+            background: coral;
+        }
+        .oneLevel li{
+            min-width: 120px;
+            height: 40px;
+            text-align: center;
+            line-height: 40px;
+            padding: 0 15px;
+            box-sizing: border-box;
+            border: 1px solid coral;
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+        }
+        .oneLevel li:hover{
+            border: 1px solid #cccccc;
+        }
+        .oneLevel li .twoLevel{
+            display: none;
+            background: coral;
+            position: absolute;
+            top: 40px;
+            left: 0;
+            z-index: 9;
+            box-shadow: 1px 1px 10px rgba(45,45,45,0.6);
+        }
+        .oneLevel li .twoLevel li{
+            position: relative;
+        }
+
+        .firstLevel{
+            float:left;
+            width: 130px;
+            height: 800px;
+            margin-left: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            background: chocolate;
+        }
+        .firstLevel>li{
+            display: none;
+            min-width: 130px;
+            /*height: 40px;*/
+            text-align: center;
+            line-height: 40px;
+            /*padding: 0 15px;*/
+            box-sizing: border-box;
+            border: 1px solid chocolate;
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+        }
+        .firstLevel li .secondLevel{
+            background: rgb(210, 55, 28);
+        }
+        .firstLevel>li.visible{
+            display: block;
+        }
+
+        /*右侧图层*/
+        .layerCon{
+            position: absolute;
+            top: 0;
+            left: 1780px;
+            width: 100px;
+            height: 800px;
+            background: chocolate;
+        }
+    </style>
+</head>
+<body>
+    <ul class="oneLevel">
+        <li>北北画板</li>
+        <li>
+            <span>开始</span>
+            <ul class="twoLevel">
+                <li data-data="layer"><span>新建</span></li>
+                <li data-data="file"><span>导入</span><input type="file" class="inputBorder" name="file"/></li>
+                <li data-data="import"><span>导出</span></li>
+            </ul>
+        </li>
+        <li>
+            <span>绘图方式</span>
+            <ul class="twoLevel">
+                <li data-data="type" data-type="fill"><span>填充</span></li>
+                <li data-data="type" data-type="stroke"><span>路径</span></li>
+            </ul>
+        </li>
+        <li>
+            <span>绘制图形</span>
+            <ul class="twoLevel">
+                <li data-data="graphics" data-graphics="pencil"><span>铅笔</span></li>
+                <li data-data="graphics" data-graphics="line"><span>线</span></li>
+                <li data-data="graphics" data-graphics="rects"><span>矩形</span></li>
+                <li data-data="graphics" data-graphics="circle"><span>圆</span></li>
+                <li data-data="graphics" data-graphics="sanjiao"><span>三角</span></li>
+                <li data-data="graphics" data-graphics="polygon"><span>多边形</span></li>
+            </ul>
+        </li>
+        <li data-data="lineWidth">
+            <span>线宽</span>
+            <ul class="twoLevel"></ul>
+        </li>
+        <li data-data="eraser" data-type="1">
+            <span>橡皮擦</span>
+            <ul class="twoLevel"></ul>
+        </li>
+        <li data-data="history" data-type="1"><span>回退</span></li>
+    </ul>
+    <div id="canvasBox">
+        <ul class="firstLevel">
+            <li id="fill" class="visible">
+                <span>填充</span>
+                <ul class="secondLevel">
+                    <li data-data="type" data-type="fill"><input type="color" name="fill" class="inputBorder"/></li>
+                </ul>
+            </li>
+            <li id="stroke">
+                <span>路径</span>
+                <ul class="secondLevel">
+                    <li data-data="type" data-type="fill"><input type="color" name="stroke" class="inputBorder"/></li>
+                </ul>
+            </li>
+            <li id="lineWidth">
+                <span>线宽</span>
+                <ul class="secondLevel">
+                    <li data-data="width" data-width="9"><span>粗</span></li>
+                    <li data-data="width" data-width="5"><span>中</span></li>
+                    <li data-data="width" data-width="1"><span>细</span></li>
+                    <li data-data="width" data-width="custorm"><span>自定义</span><input type="range" name="lineWidth" class="inputBorder" min="1" value="5"/></li>
+                </ul>
+            </li>
+            <li id="polygon">
+                <span>多边形</span>
+                <ul class="secondLevel">
+                    <li data-data="edge"><input type="range" name="edge" value="3" class="inputBorder" min="3" max="20"/></li>
+                    <li data-data="isInside">内角<input type="radio" name="isInside" class="inputBorder" value="0" checked="checked" /><br/>外角<input type="radio" name="isInside" class="inputBorder" value="1"/></li>
+                </ul>
+            </li>
+            <li id="eraser">
+                <span>橡皮擦</span>
+                <ul class="secondLevel">
+                    <li data-data="edge">宽: <input type="number" name="eraserWidth" class="inputBorder" min="1"/>px</li>
+                    <li data-data="edge">高: <input type="number" name="eraserHeight" class="inputBorder" min="3"/>px<li>
+                </ul>
+            </li>
+        </ul>
+        <canvas width="1600" height="800" id="canvas1" class="canvasSelect"></canvas>
+        <div class="layerCon">
+            <ul class="layerOneLevel"></ul>
+        </div>
+        <div class="erasers">
+            <div class="eraserCon"></div>
+        </div>
+        <div class="eraserMsg"></div>
+        <div class="importMsg">
+            <form>
+                <label for="format">
+                    <span><i>*</i>下载格式</span>
+                    <select name="format" id="format">
+                        <option value="jpeg">jpeg</option>
+                        <option value="png">png</option>
+                        <option value="gif">gif</option>
+                    </select>
+                </label>
+                <label for="quality">
+                    <span><i>*</i>图片质量</span>
+                    <select name="quality" id="quality">
+                        <option value="1">1</option>
+                        <option value="0.9">0.9</option>
+                        <option value="0.8">0.8</option>
+                        <option value="0.7">0.7</option>
+                        <option value="0.6">0.6</option>
+                        <option value="0.5">0.5</option>
+                        <option value="0.4">0.4</option>
+                        <option value="0.3">0.3</option>
+                        <option value="0.2">0.2</option>
+                        <option value="0.1">0.1</option>
+                    </select>
+                </label>
+                <label for="downname">
+                    <span><i>*</i>文件名称</span>
+                    <input type="text" name="downname" id="downname">
+                </label>
+                <div class="buttonBox">
+                    <button type="button" id="submit">提交</button>
+                    <button type="button" id="cancel">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <img src="" alt="" style="display: none">
+</body>
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+<script>
+    function canvasConfg(){
+        this.elem=document.querySelector('.canvasSelect');
+        this.ctx=this.elem.getContext('2d');
+        this.width=this.elem.width;
+        this.height=this.elem.height;
+        this.edge='3'; // 边数
+        this.lineWidth='10';
+        this.stroke='#000';
+        this.fill='#000';
+        this.type='stroke';
+        this.graphics='line';
+        this.isRecord=true;
+        this.isBack=true;
+        this.history=[];
+        this.isInside=false;
+        this.eraserWidth=10;
+        this.eraserHeight=5;
+        this.format=''; // 下载图片文件格式 jpeg,png,
+        this.quality=''; // 下载图片品质
+        this.downname=''; // 下载文件名字
+        this.isDownload=false; // 是否可以下载
+        this.layerObj={
+            layerImg:'default.png',
+            layerName:'图层',
+            layers:1 // 图层数
+        }; // 图层默认图片
+        this.layerArr=[]; // 图层数组
+    }
+    canvasConfg.prototype={
+        init(){
+            this.ctx.fillStyle=this.fill;
+            this.ctx.strokeStyle=this.stroke;
+            this.ctx.lineWidth=this.lineWidth
+            this.layerArr.push(this.layerObj)
+            this.setLayer()
+        },
+        colorChange(obj,objColor){
+            if(objColor==='isInside'){
+                this[objColor] = Boolean(parseInt($(obj).val()));
+                this.draw()
+            }else if(objColor==='file'){
+                let _this=this
+                var img=document.querySelector("img");
+                var fileObj=obj.files[0];
+                console.dir(obj)
+                $('#downname').val(fileObj.name.split('.')[0])
+                $('#format').val(fileObj.type.split('/')[1])
+                var reader=new FileReader();
+                reader.readAsDataURL(fileObj);
+                reader.onload=function(e){
+                    img.src= e.target.result;
+                }
+                img.onload=function(){
+                    _this.ctx.drawImage(img,0,0)
+                }
+                _this.history.push(_this.ctx.getImageData(0,0,_this.width,_this.height))
+            }else{
+                if($(obj).val()) {
+                    this[objColor] = $(obj).val();
+                }
+                this.draw()
+            }
+        },
+        historyBack(){
+            let _this=this
+            _this.ctx.clearRect(0, 0, _this.width, _this.height);
+            if(_this.history.length>0) {
+                _this.history.pop()
+                if(_this.history.length>0) {
+                    _this.ctx.putImageData(_this.history[_this.history.length - 1], 0, 0);
+                }
+            }else{
+                alert('无法回退了')
+            }
+        },
+        setLayer(){
+            var str='<li>' +
+                '<img src="'+this.layerObj.layerImg+'" alt="" width="50" height="30">' +
+                '<span>图层'+this.layerObj.layers+'</span>' +
+                '</li>'
+            $('.layerOneLevel').append(str)
+        },
+        newLayers(){
+            this.layerObj.layers++;
+            this.setLayer();
+            $('canvas').removeClass('canvasSelect')
+            var canvas=document.createElement('canvas');
+            canvas.width='1600';
+            canvas.height='800';
+            canvas.style.background='rgba(128,128,128,0.1)';
+            canvas.id='canvas'+this.layerObj.layers;
+            canvas.className='canvasSelect'
+            $('#canvas'+(this.layerObj.layers-1)).after(canvas)
+            this.draw()
+        },
+        getSet(){
+            this.format=$('#format').val()
+            this.quality=$('#quality').val()
+            this.downname=$('#downname').val()
+        },
+        importSet(){
+            this.getSet()
+            if(this.downname && this.downname.indexOf('.')<0) {
+                this.isDownload = true
+            }
+            this.import()
+        },
+        import(){
+            var yes=confirm("是否保存");
+            if(yes){
+                $('.importMsg').show()
+                if(this.isDownload===true) {
+                    $('.importMsg').hide()
+                    $('.importMsg form').on('reset',null)
+                    this.getSet()
+                    var url = this.elem.toDataURL("image/"+this.format,this.quality);
+                    var newurl = url.replace("image/"+this.format, "stream/octet")
+                    var a = document.createElement('a')
+                    a.href = newurl
+                    a.download = this.downname+'.'+this.format
+                    a.click()
+                }
+            }
+        },
+        draw(){
+            let _this=this;
+            _this.init();
+            console.log(_this.elem)
+            _this.elem.onmousedown=function(downEve){
+                _this.elem.onmousemove=function(moveEve){
+                    _this.ctx.clearRect(0,0,_this.width,_this.height)
+                    _this.ctx.beginPath();
+                    if(_this.history.length>0){
+                        _this.ctx.putImageData(_this.history[_this.history.length-1],0,0)
+                    }
+                    _this[_this.graphics](downEve,moveEve)
+                    if(_this.graphics==='line') {
+                        _this.ctx.stroke()
+                    }else{
+                        _this.ctx[_this.type]()
+                    }
+                }
+                _this.elem.onmouseup=function(){
+                    _this.history.push(_this.ctx.getImageData(0,0,_this.width,_this.height))
+                    _this.elem.onmousemove=null
+                    _this.elem.onmouseup=null
+                }
+            }
+        },
+        line(downEve,moveEve){
+            this.ctx.moveTo(downEve.offsetX,downEve.offsetY)
+            this.ctx.lineTo(moveEve.offsetX,moveEve.offsetY)
+        },
+        rects(downEve,moveEve){
+            this.ctx.rect(downEve.offsetX,downEve.offsetY,moveEve.offsetX-downEve.offsetX,moveEve.offsetY-downEve.offsetY)
+        },
+        sanjiao(downEve,moveEve){
+            let x=moveEve.offsetX-downEve.offsetX
+            this.ctx.moveTo(downEve.offsetX,downEve.offsetY)
+            this.ctx.lineTo(downEve.offsetX-x,moveEve.offsetY)
+            this.ctx.lineTo(moveEve.offsetX,moveEve.offsetY)
+            this.ctx.closePath()
+        },
+        circle(downEve,moveEve){
+            let offset=Math.hypot(moveEve.offsetX-downEve.offsetX,moveEve.offsetY-downEve.offsetY)
+            this.ctx.arc(downEve.offsetX,downEve.offsetY,offset,0,2*Math.PI)
+        },
+        polygon(downEve,moveEve){
+            let x=moveEve.offsetX-downEve.offsetX
+            let y=moveEve.offsetX-downEve.offsetX
+            let offset=Math.hypot(x,y)
+            let angle=(2*Math.PI)/this.edge
+            if (this.isInside){
+                this.sanjiao1(downEve,moveEve)
+            }else{
+                for (let i=0;i<this.edge;i++){
+                    this.ctx.lineTo(downEve.offsetX+offset*Math.cos(angle*i),downEve.offsetY+offset*Math.sin(angle*i))
+                }
+            }
+            this.ctx.closePath()
+        },
+        sanjiao1(downEve,moveEve){
+            let x=moveEve.offsetX-downEve.offsetX
+            let y=moveEve.offsetX-downEve.offsetX
+            var r=Math.hypot(x,y)
+            var r1=r/3;
+            var angle=360/(this.edge*2)*Math.PI/180;
+            for(var i=0;i<this.edge*2;i++){
+                if(i%2==0){
+                    this.ctx.lineTo(r*Math.cos(angle*i)+downEve.offsetX,r*Math.sin(angle*i)+downEve.offsetY)
+                }else{
+                    this.ctx.lineTo(r1*Math.cos(angle*i)+downEve.offsetX,r1*Math.sin(angle*i)+downEve.offsetY)
+                }
+            }
+            this.ctx.closePath();
+        },
+        pencil(downEve,moveEve){
+            let _this=this;
+            _this.ctx.moveTo(downEve.offsetX,downEve.offsetY)
+            _this.elem.onmousemove=function(eve){
+                _this.ctx.clearRect(0,0,_this.width,_this.height)
+                _this.ctx.lineTo(eve.offsetX,eve.offsetY)
+                if(_this.history.length>0){
+                    _this.ctx.putImageData(_this.history[_this.history.length-1],0,0)
+                }
+                // _this.ctx.closePath()
+                _this.ctx[_this.type]()
+            }
+        },
+        eraser(){
+            let _this=this;
+            $('.eraserMsg').on('mousemove',function (e) {
+                $('.eraserCon').css({
+                    width: _this.eraserWidth,
+                    height: _this.eraserHeight,
+                    top: e.offsetY-_this.eraserHeight/2,
+                    left: e.offsetX-_this.eraserWidth/2
+                })
+            })
+            $('.eraserMsg').on('mousedown',function (e) {
+                $('.eraserMsg').on('mousemove', function (moveEve) {
+                    _this.ctx.clearRect(moveEve.offsetX-_this.eraserWidth/2,moveEve.offsetY-_this.eraserHeight/2,_this.eraserWidth,_this.eraserHeight)
+                })
+                $('.eraserMsg').on('mouseup', function () {
+                    $('.eraserMsg').unbind('mousemove').on('mousemove', function (e) {
+                        $('.eraserCon').css({
+                            width: _this.eraserWidth,
+                            height: _this.eraserHeight,
+                            top: e.offsetY-_this.eraserHeight/2,
+                            left: e.offsetX-_this.eraserWidth/2
+                        })
+                    })
+                    $('.eraserMsg').unbind('mouseup')
+                })
+            })
+        },
+    };
+</script>
+<script>
+    $(function(){
+        var config;
+        function start() {
+            config = new canvasConfg();
+            config.draw();
+        }
+        start()
+        $('.oneLevel>li').hover(function () {
+            $('.twoLevel').hide();
+            $(this).children('.twoLevel').show()
+        }, function () {
+            $('.twoLevel').hide()
+        }).on('click', function () {
+            if ($(this).children('.twoLevel').children('li').length < 1) {
+                let type = $(this).data('data');
+                if (type === 'eraser') {
+                    $('.eraserMsg').show()
+                    $('.erasers').show()
+                    config.eraser()
+                } else if (type === 'history') {
+                    config.historyBack()
+                } else {
+                    $('.eraserMsg').hide()
+                    $('.erasers').hide()
+                    $('.firstLevel>li').hide();
+                }
+                $('#' + type).show();
+                $('#' + type).children('.secondLevel').children('li').map(item => {
+                    let obj = $('#' + type).children('.secondLevel').children('li').eq(item);
+                    console.log(obj)
+                })
+            }
+        });
+        $('.twoLevel').on('click', 'li', function () {
+            $('.twoLevel').hide();
+            $('.eraserMsg').hide()
+            $('.erasers').hide()
+            let type = $(this).data('data');
+            if ($(this).data('data') === 'file') {
+            } else if ($(this).data('data') === 'layer') {
+                config.newLayers()
+                start()
+            } else if ($(this).data('data') === 'import') {
+                config.import()
+            } else {
+                $('.firstLevel>li').hide();
+                $('#' + $(this).data(type)).show();
+                config[type] = $(this).data(type);
+                config.draw();
+            }
+        });
+        $('.secondLevel>li').on('click', 'span', function () {
+            let type = $(this).data('data');
+            if (type === 'width') {
+                config['lineWidth'] = $(this).data(type);
+            } else {
+                config[type] = $(this).data(type);
+            }
+            config.draw();
+        });
+
+        $('.inputBorder').on('change', function () {
+            config.colorChange(this, $(this).attr('name'))
+        })
+
+        $('#submit').on('click', function () {
+            config.importSet()
+        })
+        $('#cancel').on('click', function () {
+            $('.importMsg').hide()
+            config.isDownload = false
+        })
+    })
+</script>
+</html>
